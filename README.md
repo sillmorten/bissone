@@ -14,7 +14,8 @@ Alle Daten bleiben lokal auf dem Gerät (localStorage). Lebensmittel kommen von
 - Eintragen per Suche, Barcode-Scan, eigene Lebensmittel oder Schnelleintrag
 - Sport eintragen (Schätzung über Dauer und Gewicht) oder Wert aus Apple Health per Kurzbefehl einfügen
 - Verlauf nach Woche, Monat, Jahr oder alles, beliebig weit zurückblättern, Kalender zum Springen auf jeden Tag
-- Körpergewicht mit komplettem Verlauf, Backup als Datei
+- Körpergewicht mit komplettem Verlauf
+- Backup als Datei (z. B. iCloud Drive): Übersicht, was drin ist, Erinnerung (wöchentlich/monatlich), Wiederherstellen per Ersetzen oder Zusammenführen, letzte Wiederherstellung rückgängig machbar
 - Streaks und Abzeichen (Tage im Ziel, Tage eingetragen, Eiweiß, Supplements)
 - Körpermaße mit Verlauf und Fortschrittsfotos (verkleinert in IndexedDB, im Backup enthalten)
 - Supplement-Tracker zum täglichen Abhaken, frei einstellbar
@@ -34,6 +35,6 @@ Icons: [Phosphor Icons](https://phosphoricons.com) (MIT). Barcode: [ZXing](https
 ## App sperren
 In `status.json` steuert `"gesperrt": true` einen Sperr-Bildschirm für alle Nutzer, `false` gibt die App wieder frei.
 Titel und Text lassen sich dort ebenfalls ändern. Die Daten auf den Geräten bleiben unberührt.
-Auf der Wartungs-Seite kann jeder ein Backup aufs Handy speichern. Einen Zugangscode gibt es nicht.
+Einen Zugangscode gibt es nicht.
 Auf dem eigenen Gerät hebt 7× Tippen auf „Biss · Wartung“ im Sperr-Bildschirm die Sperre dauerhaft auf.
 
