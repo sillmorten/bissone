@@ -390,3 +390,5 @@ i.o { background: var(--org); }
 .mx-login.shake { animation: mxShake .45s; }
 .mx-err { min-height: 18px; margin: 12px 0 0; font-size: 13px; font-weight: 500; color: #ff6b81; }
 @keyframes mxShake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+.it .n.news-n b, .it .n.news-n span { white-space: normal; }
+.it .n.news-n span { line-height: 1.35; margin-top: 2px; }
