@@ -21,6 +21,7 @@ Alle Daten bleiben lokal auf dem Gerät (localStorage). Lebensmittel kommen von
 - Supplement-Tracker zum täglichen Abhaken, frei einstellbar
 - Essensideen zum Abnehmen oder Zunehmen (`ideas.js`), sortiert nach den übrigen Kalorien und dem Eiweiß des Tages, mit einem Tipp eintragbar
 - Verbesserungswünsche direkt aus der App an den Entwickler senden (Formspree)
+- Anonyme Nutzungszählung über [GoatCounter](https://www.goatcounter.com): nur „App geöffnet“, ohne Cookies und ohne Einträge. Code in `GOATCOUNTER` in `app.js` eintragen, leer lassen schaltet sie aus.
 
 ## Installation auf dem iPhone
 1. Seite in **Safari** öffnen.

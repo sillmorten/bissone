@@ -28,8 +28,11 @@ const dayTitle = k => { const t = todayKey(); if (k === t) return 'Heute'; if (k
 const DONATE_URL = 'https://paypal.me/MortenUkena';
 // Verbesserungswünsche gehen über Formspree direkt an den Entwickler. Leer lassen, um den Eintrag auszublenden.
 const WISH_URL = 'https://formspree.io/f/xeepbyjn';
+// Anonyme Nutzungszählung über GoatCounter (nur App-Öffnungen, ohne Cookies und ohne Einträge).
+// Code des GoatCounter-Kontos, z. B. 'biss' für biss.goatcounter.com. Leer lassen, um die Zählung auszuschalten.
+const GOATCOUNTER = '';
 // Versionsnummer für die Anzeige in der App. Bei jedem Update zusammen mit VERSION in sw.js hochzählen.
-const APP_VERSION = '1.19.0';
+const APP_VERSION = '1.19.1';
 // Eigene Speichernamen, damit diese Entwicklungs-Version die Daten der Live-App (gleiche Domain) nicht berührt
 const KEY = 'biss-beta.v1';
 const DEFAULTS = () => ({
@@ -393,7 +396,7 @@ function viewGoals() {
   <section class="list icons"><button class="it" data-act="wish">${tile('sparkle', ['#ffd60a', '#f5a300'])}<div class="n"><b>Wunsch senden 💡</b><span>Was fehlt dir? Sag’s dem Entwickler</span></div><span class="chev">${icon('right')}</span></button></section>` : ''}
   ${DONATE_URL ? `<div class="hdr"><span>Unterstützen</span></div>
   <section class="list icons"><a class="it" href="${esc(DONATE_URL)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${tile('paypal', ['#009cde', '#003087'])}<div class="n"><b>Entwickler unterstützen ☕</b><span>Freiwillige Spende per PayPal</span></div><span class="chev">${icon('right')}</span></a></section>` : ''}
-  <p class="foot">Alle Daten bleiben auf diesem Gerät. Es gibt kein Konto und keine Werbung. Eingebaute Lebensmittel sind Richtwerte. Die Online-Suche und der Barcode-Scan nutzen Open Food Facts (offene Datenbank, ODbL).</p>
+  <p class="foot">Alle Daten bleiben auf diesem Gerät. Es gibt kein Konto und keine Werbung. Eingebaute Lebensmittel sind Richtwerte. Die Online-Suche und der Barcode-Scan nutzen Open Food Facts (offene Datenbank, ODbL).${GOATCOUNTER ? ' Biss zählt anonym über GoatCounter, wie oft die App geöffnet wird, ohne Cookies, ohne persönliche Daten und ohne deine Einträge.' : ''}</p>
   <section class="list"><button class="it danger" data-act="wipe">Alle Daten löschen</button></section>
   ${(lockState() || {}).gesperrt && lockBypassed() ? `<div class="hdr"><span>Sperre</span></div>
   <section class="list icons"><button class="it" data-act="lockPreview">${tile('warn', ['#ff6b8a', '#e3123f'])}<div class="n"><b>Auf diesem Handy sperren</b><span>Wieder rein: „Ich bin Admin“ und Passwort</span></div><span class="chev">${icon('right')}</span></button></section>` : ''}
@@ -1675,6 +1678,18 @@ document.addEventListener('visibilitychange', () => {
   const t = todayKey();
   if (t !== lastSeenDay) { if (cur === lastSeenDay) cur = t; lastSeenDay = t; render(); }
 });
+
+/* ---------- Nutzungszählung ---------- */
+// Zählt nur „App geöffnet“: beim Start und nach mehr als 30 Minuten Pause. Es wird nichts aus den Daten gesendet.
+let lastCount = 0;
+function countOpen() {
+  if (!GOATCOUNTER || location.protocol !== 'https:' || !navigator.onLine || Date.now() - lastCount < 30 * 60 * 1000) return;
+  lastCount = Date.now();
+  const q = new URLSearchParams({ p: location.pathname, t: document.title, s: screen.width + ',' + screen.height, rnd: Math.random().toString(36).slice(2) });
+  new Image().src = `https://${GOATCOUNTER}.goatcounter.com/count?${q}`;
+}
+countOpen();
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') countOpen(); });
 
 /* ---------- Sperre ---------- */
 // status.json im Repo steuert, ob die App gesperrt ist ("gesperrt": true/false).
