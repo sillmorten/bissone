@@ -21,6 +21,7 @@ Alle Daten bleiben lokal auf dem Gerät (localStorage). Lebensmittel kommen von
 - Supplement-Tracker zum täglichen Abhaken, frei einstellbar
 - Essensideen zum Abnehmen oder Zunehmen (`ideas.js`), sortiert nach den übrigen Kalorien und dem Eiweiß des Tages, mit einem Tipp eintragbar
 - Verbesserungswünsche direkt aus der App an den Entwickler senden (Formspree)
+- Anonyme Nutzungszählung: pro Gerät höchstens eine Meldung am Tag (App, Gerätetyp, Version), ohne Namen, Kennung oder Einträge
 
 ## Installation auf dem iPhone
 1. Seite in **Safari** öffnen.
@@ -32,6 +33,11 @@ Reines HTML/CSS/JavaScript ohne Build-Schritt. `sw.js` cached die App für den O
 Nach Änderungen die `VERSION` in `sw.js` hochzählen, damit Geräte das Update laden, und `APP_VERSION` in `app.js` anpassen (wird unter „Ziele“ angezeigt).
 
 Icons: [Phosphor Icons](https://phosphoricons.com) (MIT). Barcode: [ZXing](https://github.com/zxing-js/library) (Apache 2.0).
+
+## Admin-App (Nutzung ansehen)
+`admin/` ist eine eigene Seite nur für den Entwickler (https://sillmorten.github.io/bissone/admin/), mit Anmeldung über Supabase.
+Einrichtung: `admin/supabase.sql` einmal im Supabase-SQL-Editor ausführen, in Supabase einen Nutzer für den Admin anlegen und die Registrierung neuer Nutzer ausschalten.
+Danach Projekt-URL und öffentlichen Schlüssel (publishable/anon, nie den geheimen) in `STATS_URL`/`STATS_KEY` in `app.js` und `admin/index.html` eintragen. Leer gelassen ist die Zählung aus.
 
 ## App sperren
 In `status.json` steuert `"gesperrt": true` einen Sperr-Bildschirm für alle Nutzer, `false` gibt die App wieder frei.
