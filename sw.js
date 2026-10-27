@@ -15,8 +15,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   const url = new URL(req.url);
-  // status.json (Sperre) immer frisch aus dem Netz
-  if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.endsWith('/status.json')) return;
+  // status.json (Sperre) immer frisch aus dem Netz, die Admin-App (admin/) läuft ohne diesen Cache
+  if (req.method !== 'GET' || url.origin !== location.origin || url.pathname.endsWith('/status.json') || url.pathname.includes('/admin/')) return;
   e.respondWith(caches.open(VERSION).then(async cache => {
     const key = req.mode === 'navigate' ? './' : req;
     const cached = await cache.match(key, { ignoreSearch: true });
