@@ -29,7 +29,7 @@ const DONATE_URL = 'https://paypal.me/MortenUkena';
 // Verbesserungswünsche gehen über Formspree direkt an den Entwickler. Leer lassen, um den Eintrag auszublenden.
 const WISH_URL = 'https://formspree.io/f/xeepbyjn';
 // Versionsnummer für die Anzeige in der App. Bei jedem Update zusammen mit VERSION in sw.js hochzählen.
-const APP_VERSION = '1.18.0';
+const APP_VERSION = '1.18.1';
 // Eigene Speichernamen, damit diese Entwicklungs-Version die Daten der Live-App (gleiche Domain) nicht berührt
 const KEY = 'biss-beta.v1';
 const DEFAULTS = () => ({
@@ -1761,25 +1761,24 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 /* ---------- Update-Hinweis ---------- */
 // Wird jedem bestehenden Nutzer einmal gezeigt. Für die nächste Neuigkeit NEWS_ID ändern und Text anpassen.
-const NEWS_ID = 'backup-2026-10';
+const NEWS_ID = 'ideen-2026-10';
 function openNews() {
   S.seenNews = NEWS_ID; save();
-  const android = /Android/i.test(navigator.userAgent);
   const row = (ic, g, b, t) => `<div class="it">${tile(ic, g)}<div class="n news-n"><b>${b}</b><span>${t}</span></div></div>`;
   openLayer('sheet', `
     <div class="hello">
       <img src="icons/icon-192.png" alt="" class="hello-ic">
       <h2>Biss hat ein Update 🎉</h2>
-      <p>Ab jetzt kannst du deine Daten als Backup sichern und jederzeit wieder hochladen.</p>
+      <p>Neu: Essensideen zum Abnehmen oder Zunehmen, passend zu deinem Tag.</p>
     </div>
     <section class="list icons bklist">
-      ${row('cloud', ['#40a0ff', '#0a6fe0'], 'Backup erstellen', `Alles in einer Datei: Tage, Lebensmittel, Gewicht, Fotos und Ziele. ${android ? 'Landet in „Downloads“.' : 'Am besten in iCloud Drive sichern.'}`)}
-      ${row('download', ['#4ee37a', '#24b34b'], 'Backup wieder hochladen', 'Auf einem neuen Handy oder nach dem Löschen der App ist alles sofort wieder da.')}
-      ${row('calendar', ['#ffb340', '#ff8a00'], 'Erinnerung', 'Biss erinnert dich, wenn dein letztes Backup zu lange her ist.')}
+      ${row('bowl', ['#5ac8fa', '#1a8fd6'], 'Fast 40 Gerichte und Snacks', 'Vom Skyr-Bowl bis zum Masse-Shake, jeweils mit Kalorien und Eiweiß.')}
+      ${row('target', ['#ff5c7c', '#e8264d'], 'Passend zu deinem Ziel', 'Sortiert nach den Kalorien und dem Eiweiß, die dir heute noch fehlen.')}
+      ${row('plus', ['#4ee37a', '#24b34b'], 'Mit einem Tipp eingetragen', 'Ganzes, halbes oder anderthalb Gerichte, wie du magst.')}
     </section>
-    <button class="btn" id="nwGo">Jetzt Backup erstellen</button>
+    <button class="btn" id="nwGo">Essensideen ansehen</button>
     <button class="btn del" data-act="close" style="color:var(--l2)">Später</button>`, el => {
-    $('#nwGo', el).addEventListener('click', () => { closeTop(); setTimeout(openBackup, 330); });
+    $('#nwGo', el).addEventListener('click', () => { closeTop(); setTimeout(() => openIdeas(), 330); });
   });
   confetti();
 }
