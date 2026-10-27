@@ -54,6 +54,12 @@ input:last-of-type { border-bottom: 0; }
 .btn { background: var(--tint); color: #fff; font-weight: 600; border-radius: 12px; padding: 14px; width: 100%; }
 .btn:disabled { opacity: .5; }
 .msg { color: var(--red); font-size: 14px; padding: 0 16px; min-height: 1em; }
+.live { display: flex; align-items: center; gap: 14px; }
+.live b { font-size: 44px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+.live span { display: block; margin-top: 2px; font-size: 13px; color: var(--l2); font-weight: 500; }
+.dot { width: 12px; height: 12px; border-radius: 50%; background: var(--l2); flex: none; }
+.dot.on { background: var(--grn); animation: puls 1.6s ease-out infinite; }
+@keyframes puls { 0% { box-shadow: 0 0 0 0 rgba(48,209,88,.6); } 100% { box-shadow: 0 0 0 12px rgba(48,209,88,0); } }
 .foot { font-size: 13px; color: var(--l2); padding: 0 16px; line-height: 1.4; }
 </style>
 </head>
@@ -76,6 +82,10 @@ input:last-of-type { border-bottom: 0; }
     <div class="seg" id="appSeg">
       <button data-app="live">Biss</button><button data-app="beta">Biss Beta</button><button data-app="alle">Beide</button>
     </div>
+    <div class="card">
+      <div class="live"><div class="dot" id="liveDot"></div><div><b id="kLive">–</b><span id="liveTxt">gerade aktiv</span></div></div>
+      <div id="liveList" style="margin-top:8px"></div>
+    </div>
     <div class="grid">
       <div class="card tile"><span>Heute genutzt</span><b id="kHeute">–</b><em>Geräte</em></div>
       <div class="card tile"><span>Letzte 7 Tage</span><b id="k7">–</b><em>Ø Geräte pro Tag</em></div>
@@ -89,7 +99,9 @@ input:last-of-type { border-bottom: 0; }
     </div>
     <div class="hdr">Gerätetyp, letzte 30 Tage</div>
     <div class="card" id="typ"></div>
-    <p class="foot">Gezählt wird pro Gerät höchstens einmal am Tag, wenn die App geöffnet wird. Es werden keine Namen, keine Kennung und keine Einträge gesendet. „Geräte insgesamt“ zählt jedes Gerät einmal, sobald es die neue Version zum ersten Mal öffnet.</p>
+    <div class="hdr">Versionen, letzte 7 Tage</div>
+    <div class="card" id="ver"></div>
+    <p class="foot">„Gerade aktiv“ zählt Handys, auf denen Biss in den letzten 2 Minuten offen war, und aktualisiert sich alle 15 Sekunden. Gezählt wird pro Gerät höchstens einmal am Tag, wenn die App geöffnet wird. Es werden keine Namen, keine Kennung und keine Einträge gesendet. „Geräte insgesamt“ zählt jedes Gerät einmal, sobald es die neue Version zum ersten Mal öffnet.</p>
   </section>
 </main>
 <script>
@@ -105,6 +117,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const nf = new Intl.NumberFormat('de-DE', { maximumFractionDigits: 1 });
 let token = sessionStorage.getItem('biss-admin.token') || '';
 let rows = [];
+let pulses = [];
 let appSel = localStorage.getItem('biss-admin.app') || 'alle';
 
 async function login(e) {
@@ -135,7 +148,7 @@ async function load() {
   const all = [];
   // Tageszeilen der letzten 31 Tage plus alle „neu“-Zeilen, in Blöcken zu 1000
   for (let from = 0; ; from += 1000) {
-    const q = `select=zeit,app,art,geraet&or=(art.eq.neu,zeit.gte."${since.toISOString()}")&order=zeit.asc`;
+    const q = `select=zeit,app,art,geraet,version&or=(art.eq.neu,zeit.gte."${since.toISOString()}")&order=zeit.asc`;
     const r = await fetch(`${API}/rest/v1/nutzung?${q}`, { headers: { apikey: STATS_KEY, Authorization: 'Bearer ' + token, Range: `${from}-${from + 999}` } });
     if (r.status === 401) { logout(); $('#err').textContent = 'Bitte neu anmelden.'; return; }
     if (!r.ok) { show(false); $('#err').textContent = 'Daten konnten nicht geladen werden.'; return; }
@@ -144,8 +157,37 @@ async function load() {
     if (part.length < 1000) break;
   }
   rows = all;
+  await loadLive(true);
   show(true);
   render();
+}
+
+// Live-Meldungen der letzten 2 Stunden, damit auch die Dauer der offenen Sitzungen sichtbar ist
+async function loadLive(quiet) {
+  const since = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+  try {
+    const r = await fetch(`${API}/rest/v1/puls?select=zeit,sitzung,app,geraet,version&zeit=gte."${since}"&order=zeit.asc`, { headers: { apikey: STATS_KEY, Authorization: 'Bearer ' + token, Range: '0-4999' } });
+    if (r.status === 401) { logout(); $('#err').textContent = 'Bitte neu anmelden.'; return; }
+    if (r.ok) pulses = await r.json();
+  } catch (e) {}
+  if (!quiet) renderLive();
+}
+
+function renderLive() {
+  const by = {};
+  pulses.filter(p => appSel === 'alle' || p.app === appSel).forEach(p => {
+    const t = new Date(p.zeit).getTime(), s = by[p.sitzung] || (by[p.sitzung] = { ...p, first: t, last: t });
+    s.first = Math.min(s.first, t); s.last = Math.max(s.last, t); s.version = p.version;
+  });
+  const now = Date.now();
+  const live = Object.values(by).filter(s => now - s.last < 2 * 60 * 1000).sort((a, b) => a.first - b.first);
+  $('#kLive').textContent = live.length;
+  $('#liveDot').classList.toggle('on', live.length > 0);
+  $('#liveTxt').textContent = live.length === 1 ? 'Handy gerade aktiv' : 'Handys gerade aktiv';
+  const mins = s => Math.max(1, Math.round((now - s.first) / 60000));
+  $('#liveList').innerHTML = live.map(s => `<div class="row"><span>${esc(s.geraet || 'Unbekannt')} · ${s.app === 'beta' ? 'Biss Beta' : 'Biss'} · ${esc(s.version || '')}</span><b>seit ${mins(s)} Min.</b></div>`).join('');
+  const now2 = new Date();
+  $('#stand').textContent = `Stand ${pad(now2.getHours())}:${pad(now2.getMinutes())}:${pad(now2.getSeconds())} Uhr`;
 }
 
 function render() {
@@ -169,14 +211,18 @@ function render() {
   days.filter(r => keys.includes(dkey(new Date(r.zeit)))).forEach(r => { typ[r.geraet || 'Unbekannt'] = (typ[r.geraet || 'Unbekannt'] || 0) + 1; });
   const sum = Object.values(typ).reduce((a, b) => a + b, 0);
   $('#typ').innerHTML = sum ? Object.entries(typ).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<div class="row"><span>${esc(k)}</span><b>${Math.round(v / sum * 100)} %</b></div>`).join('') : '<div class="row"><span>Noch keine Daten</span></div>';
-  const now = new Date();
-  $('#stand').textContent = `Stand ${pad(now.getHours())}:${pad(now.getMinutes())} Uhr`;
+  const ver = {}, week = keys.slice(-7);
+  days.filter(r => week.includes(dkey(new Date(r.zeit)))).forEach(r => { ver[r.version || '?'] = (ver[r.version || '?'] || 0) + 1; });
+  const vsum = Object.values(ver).reduce((a, b) => a + b, 0);
+  $('#ver').innerHTML = vsum ? Object.entries(ver).sort((a, b) => b[0].localeCompare(a[0], 'de', { numeric: true })).map(([k, v]) => `<div class="row"><span>Version ${esc(k)}</span><b>${Math.round(v / vsum * 100)} %</b></div>`).join('') : '<div class="row"><span>Noch keine Daten</span></div>';
+  renderLive();
 }
 
 $('#form').addEventListener('submit', login);
 $('#out').addEventListener('click', logout);
 $('#appSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; appSel = b.dataset.app; localStorage.setItem('biss-admin.app', appSel); render(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && token) load(); });
+setInterval(() => { if (token && document.visibilityState === 'visible') loadLive(); }, 15 * 1000);
 if (token) load(); else show(false);
 </script>
 </body>
