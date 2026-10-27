@@ -30,10 +30,10 @@ const DONATE_URL = 'https://paypal.me/MortenUkena';
 const WISH_URL = 'https://formspree.io/f/xeepbyjn';
 // Anonyme Nutzungszählung für die Admin-App (admin/). Supabase-Projekt-URL und öffentlicher Schlüssel (publishable/anon).
 // Leer lassen, um die Zählung auszuschalten. Gesendet wird nur App, Art, Gerätetyp und Version, nie Namen oder Einträge.
-const STATS_URL = '';
-const STATS_KEY = '';
+const STATS_URL = 'https://wfrtltqzhmeaildtlxga.supabase.co';
+const STATS_KEY = 'sb_publishable_Ic-sGCsYX6A3977v6kDEQA_i0W63MOG';
 // Versionsnummer für die Anzeige in der App. Bei jedem Update zusammen mit VERSION in sw.js hochzählen.
-const APP_VERSION = '1.19.1';
+const APP_VERSION = '1.19.2';
 // Eigene Speichernamen, damit diese Entwicklungs-Version die Daten der Live-App (gleiche Domain) nicht berührt
 const KEY = 'biss-beta.v1';
 const DEFAULTS = () => ({
