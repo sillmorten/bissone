@@ -87,12 +87,12 @@ input:last-of-type { border-bottom: 0; }
       <div id="liveList" style="margin-top:8px"></div>
     </div>
     <div class="grid">
-      <div class="card tile"><span>Heute genutzt</span><b id="kHeute">–</b><em>Geräte</em></div>
-      <div class="card tile"><span>Letzte 7 Tage</span><b id="k7">–</b><em>Ø Geräte pro Tag</em></div>
-      <div class="card tile"><span>Letzte 30 Tage</span><b id="k30">–</b><em>Ø Geräte pro Tag</em></div>
+      <div class="card tile"><span>Aufrufe heute</span><b id="kHeute">–</b><em id="kHeuteG">–</em></div>
+      <div class="card tile"><span>Letzte 7 Tage</span><b id="k7">–</b><em>Aufrufe</em></div>
+      <div class="card tile"><span>Letzte 30 Tage</span><b id="k30">–</b><em>Aufrufe</em></div>
       <div class="card tile"><span>Geräte insgesamt</span><b id="kNeu">–</b><em>seit Beginn der Zählung</em></div>
     </div>
-    <div class="hdr">Geräte pro Tag, letzte 30 Tage</div>
+    <div class="hdr">Aufrufe pro Tag, letzte 30 Tage</div>
     <div class="card">
       <div class="chart" id="chart"></div>
       <div class="axis"><span id="ax0"></span><span>Heute</span></div>
@@ -101,7 +101,7 @@ input:last-of-type { border-bottom: 0; }
     <div class="card" id="typ"></div>
     <div class="hdr">Versionen, letzte 7 Tage</div>
     <div class="card" id="ver"></div>
-    <p class="foot">„Gerade aktiv“ zählt Handys, auf denen Biss in den letzten 2 Minuten offen war, und aktualisiert sich alle 15 Sekunden. Gezählt wird pro Gerät höchstens einmal am Tag, wenn die App geöffnet wird. Es werden keine Namen, keine Kennung und keine Einträge gesendet. „Geräte insgesamt“ zählt jedes Gerät einmal, sobald es die neue Version zum ersten Mal öffnet.</p>
+    <p class="foot">„Gerade aktiv“ zählt Handys, auf denen Biss in den letzten 2 Minuten offen war, und aktualisiert sich alle 15 Sekunden. Jedes Öffnen der App zählt als Aufruf, auch wenn sie nach mindestens 10 Sekunden im Hintergrund wieder geöffnet wird. Gerätetyp und Versionen zählen jedes Gerät höchstens einmal am Tag. Aufrufe gibt es ab Version 1.19.3. Es werden keine Namen, keine Kennung und keine Einträge gesendet. „Geräte insgesamt“ zählt jedes Gerät einmal, sobald es die neue Version zum ersten Mal öffnet.</p>
   </section>
 </main>
 <script>
@@ -194,14 +194,17 @@ function render() {
   document.querySelectorAll('#appSeg button').forEach(b => b.classList.toggle('on', b.dataset.app === appSel));
   const mine = rows.filter(r => appSel === 'alle' || r.app === appSel);
   const days = mine.filter(r => r.art === 'tag');
-  const perDay = {};
-  days.forEach(r => { const k = dkey(new Date(r.zeit)); perDay[k] = (perDay[k] || 0) + 1; });
+  const perDay = {}, devDay = {};
+  mine.filter(r => r.art === 'auf').forEach(r => { const k = dkey(new Date(r.zeit)); perDay[k] = (perDay[k] || 0) + 1; });
+  days.forEach(r => { const k = dkey(new Date(r.zeit)); devDay[k] = (devDay[k] || 0) + 1; });
   const keys = [];
   for (let i = 29; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); keys.push(dkey(d)); }
-  const avg = n => keys.slice(-n).reduce((s, k) => s + (perDay[k] || 0), 0) / n;
+  const total = n => keys.slice(-n).reduce((s, k) => s + (perDay[k] || 0), 0);
+  const dev = devDay[keys[29]] || 0;
   $('#kHeute').textContent = perDay[keys[29]] || 0;
-  $('#k7').textContent = nf.format(avg(7));
-  $('#k30').textContent = nf.format(avg(30));
+  $('#kHeuteG').textContent = `von ${dev} ${dev === 1 ? 'Gerät' : 'Geräten'}`;
+  $('#k7').textContent = total(7);
+  $('#k30').textContent = total(30);
   $('#kNeu').textContent = mine.filter(r => r.art === 'neu').length;
   const max = Math.max(1, ...keys.map(k => perDay[k] || 0));
   $('#chart').innerHTML = keys.map((k, i) => `<div class="${i === 29 ? 'today' : ''}" style="height:${((perDay[k] || 0) / max) * 100}%" title="${k}: ${perDay[k] || 0}"></div>`).join('');

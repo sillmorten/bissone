@@ -397,7 +397,7 @@ function viewGoals() {
   <section class="list icons"><button class="it" data-act="wish">${tile('sparkle', ['#ffd60a', '#f5a300'])}<div class="n"><b>Wunsch senden 💡</b><span>Was fehlt dir? Sag’s dem Entwickler</span></div><span class="chev">${icon('right')}</span></button></section>` : ''}
   ${DONATE_URL ? `<div class="hdr"><span>Unterstützen</span></div>
   <section class="list icons"><a class="it" href="${esc(DONATE_URL)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${tile('paypal', ['#009cde', '#003087'])}<div class="n"><b>Entwickler unterstützen ☕</b><span>Freiwillige Spende per PayPal</span></div><span class="chev">${icon('right')}</span></a></section>` : ''}
-  <p class="foot">Alle Daten bleiben auf diesem Gerät. Es gibt kein Konto und keine Werbung. Eingebaute Lebensmittel sind Richtwerte. Die Online-Suche und der Barcode-Scan nutzen Open Food Facts (offene Datenbank, ODbL).${STATS_URL ? ' Biss zählt anonym, an wie vielen Tagen und wie lange die App gerade geöffnet ist. Dabei werden kein Name, keine dauerhafte Kennung und keine Einträge gesendet.' : ''}</p>
+  <p class="foot">Alle Daten bleiben auf diesem Gerät. Es gibt kein Konto und keine Werbung. Eingebaute Lebensmittel sind Richtwerte. Die Online-Suche und der Barcode-Scan nutzen Open Food Facts (offene Datenbank, ODbL).${STATS_URL ? ' Biss zählt anonym, wie oft und wie lange die App geöffnet wird. Dabei werden kein Name, keine dauerhafte Kennung und keine Einträge gesendet.' : ''}</p>
   <section class="list"><button class="it danger" data-act="wipe">Alle Daten löschen</button></section>
   ${(lockState() || {}).gesperrt && lockBypassed() ? `<div class="hdr"><span>Sperre</span></div>
   <section class="list icons"><button class="it" data-act="lockPreview">${tile('warn', ['#ff6b8a', '#e3123f'])}<div class="n"><b>Auf diesem Handy sperren</b><span>Wieder rein: „Ich bin Admin“ und Passwort</span></div><span class="chev">${icon('right')}</span></button></section>` : ''}
@@ -1708,6 +1708,22 @@ async function countDay() {
 }
 countDay();
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') countDay(); });
+
+// Jedes Öffnen zählt als Aufruf: beim Start und wenn die App nach mindestens 10 Sekunden im Hintergrund wieder geöffnet wird
+let statsHidden = 0;
+function countOpen() {
+  if (!STATS_URL || !STATS_KEY || location.protocol !== 'https:' || !navigator.onLine) return;
+  fetch(STATS_URL.replace(/\/$/, '') + '/rest/v1/nutzung', {
+    method: 'POST', keepalive: true,
+    headers: { apikey: STATS_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify({ app: location.pathname.includes('bissone') ? 'beta' : 'live', art: 'auf', geraet: statsDevice(), version: APP_VERSION }),
+  }).catch(() => {});
+}
+countOpen();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') statsHidden = Date.now();
+  else if (statsHidden && Date.now() - statsHidden >= 10 * 1000) countOpen();
+});
 
 // Live-Ansicht: Solange die App sichtbar ist, jede Minute ein kurzes „gerade offen“.
 // Die Sitzungsnummer ist zufällig, gilt nur bis zum Schließen und wird nirgends gespeichert.

@@ -4,7 +4,7 @@ create table if not exists public.nutzung (
   id bigint generated always as identity primary key,
   zeit timestamptz not null default now(),
   app text not null check (app in ('live', 'beta')),
-  art text not null check (art in ('tag', 'neu')),
+  art text not null check (art in ('tag', 'neu', 'auf')),
   geraet text check (char_length(geraet) <= 20),
   version text check (char_length(version) <= 20)
 );
