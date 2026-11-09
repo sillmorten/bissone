@@ -25,7 +25,7 @@ Alle Daten bleiben lokal auf dem Gerät (localStorage). Lebensmittel kommen von
 - Anonyme Nutzungszählung: pro Gerät höchstens eine Meldung am Tag (App, Gerätetyp, Version), ohne Namen, Kennung oder Einträge
 
 ## Demo-Werbung und Biss Pro (Test)
-Nur in der Beta und nur zum Ausprobieren: ausgedachte Anzeigen (Banner auf „Heute“ und im Verlauf, Vollbild nach jedem 4. Eintrag mit 5 Sekunden Wartezeit). Es wird kein Werbenetzwerk geladen und nichts an Dritte gesendet.
+Nur in der Beta und nur zum Ausprobieren: ausgedachte Anzeigen (Banner auf „Heute“ und im Verlauf, Vollbild alle 20 Minuten Nutzung mit 5 Sekunden Wartezeit). Es wird kein Werbenetzwerk geladen und nichts an Dritte gesendet.
 Biss Pro (unter „Ziele“) blendet die Werbung aus und schaltet eine eigene App-Farbe frei. Freischalten per Demo-Kauf (es wird nichts bezahlt) oder mit dem Test-Code `BISSPRO`. Pro wird nur auf dem Gerät gespeichert (`biss-beta.pro`), nicht im Backup.
 Mit `"werbung": false` in `status.json` ist die Demo-Werbung für alle aus.
 
