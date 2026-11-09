@@ -33,7 +33,7 @@ const WISH_URL = 'https://formspree.io/f/xeepbyjn';
 const STATS_URL = 'https://wfrtltqzhmeaildtlxga.supabase.co';
 const STATS_KEY = 'sb_publishable_Ic-sGCsYX6A3977v6kDEQA_i0W63MOG';
 // Versionsnummer für die Anzeige in der App. Bei jedem Update zusammen mit VERSION in sw.js hochzählen.
-const APP_VERSION = '1.30.0';
+const APP_VERSION = '1.30.1';
 // Eigene Speichernamen, damit diese Entwicklungs-Version die Daten der Live-App (gleiche Domain) nicht berührt
 const KEY = 'biss-beta.v1';
 const DEFAULTS = () => ({
@@ -405,10 +405,10 @@ function viewGoals() {
   <section class="list icons"><a class="it" href="${esc(DONATE_URL)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${tile('paypal', ['#009cde', '#003087'])}<div class="n"><b>Entwickler unterstützen ☕</b><span>Freiwillige Spende per PayPal</span></div><span class="chev">${icon('right')}</span></a></section>` : ''}
   <p class="foot">Alle Daten bleiben auf diesem Gerät. Es gibt kein Konto.${adsOn() ? ' Die Werbung in dieser Beta ist nur eine Demo mit ausgedachten Anzeigen, es werden keine Daten an Werbefirmen gesendet.' : ''} Eingebaute Lebensmittel sind Richtwerte. Die Online-Suche und der Barcode-Scan nutzen Open Food Facts (offene Datenbank, ODbL).${STATS_URL ? ' Biss zählt anonym, wie oft und wie lange die App geöffnet wird. Dabei werden kein Name, keine dauerhafte Kennung und keine Einträge gesendet.' : ''}</p>
   <section class="list"><button class="it danger" data-act="wipe">Alle Daten löschen</button></section>
-  ${(lockState() || {}).gesperrt && lockBypassed() ? `<div class="hdr"><span>Sperre</span></div>
-  <section class="list icons"><button class="it" data-act="lockPreview">${tile('warn', ['#ff6b8a', '#e3123f'])}<div class="n"><b>Auf diesem Handy sperren</b><span>Wieder rein: „Ich bin Admin“ und ${bioReady() ? 'Fingerabdruck' : 'Passwort'}</span></div><span class="chev">${icon('right')}</span></button>${bioAvail ? `
+  ${isAdmin() ? `<div class="hdr"><span>Admin</span></div>
+  <section class="list icons"><button class="it" data-act="lockPreview">${tile('warn', ['#ff6b8a', '#e3123f'])}<div class="n"><b>Abmelden</b><span>Wieder rein: „Ich bin Admin“ und ${bioReady() ? 'Fingerabdruck oder Passwort' : 'Passwort'}</span></div><span class="chev">${icon('right')}</span></button>${bioAvail ? `
   <button class="it" data-act="bioToggle">${tile('check', ['#34c759', '#248a3d'])}<div class="n"><b>Anmeldung per Fingerabdruck</b><span>${bioStored() ? 'Eingerichtet · Tippen zum Ausschalten' : 'Aus · Tippen zum Einrichten'}</span></div><span class="chev">${icon('right')}</span></button>` : ''}</section>` : ''}
-  <p class="ver">Biss · Version ${APP_VERSION}</p>`;
+  <p class="ver" data-act="verTap">Biss · Version ${APP_VERSION}</p>`;
 }
 
 /* ---------- Ebenen (Sheets und Seiten) ---------- */
@@ -1876,7 +1876,9 @@ const ACT = {
     try { await bioRegister(); toast('Fingerabdruck eingerichtet 👍'); render(); }
     catch (e) { toast(e && e.name === 'NotAllowedError' ? 'Abgebrochen' : 'Einrichten hat nicht geklappt'); }
   },
-  lockPreview: () => { lsSet(RELOCK_KEY, '1'); showLock(lockState() || { gesperrt: true }); },
+  lockPreview: () => { lsSet(RELOCK_KEY, '1'); closeAll(); showLock(lockState()); },
+  // Versteckter Admin-Zugang: 7× auf die Versionszeile tippen öffnet den Login
+  verTap: () => { clearTimeout(verT); verT = setTimeout(() => { verTaps = 0; }, 2000); if (++verTaps >= 7) { verTaps = 0; lsSet(RELOCK_KEY, '1'); showLock(lockState()); } },
   range: b => { histRange = b.dataset.n; histOff = 0; render(); },
   histStep: b => { histOff = Math.max(0, histOff + +b.dataset.d); render(); },
   openmonth: b => { const [y, m] = b.dataset.k.split('-').map(Number), n = kdate(todayKey()); histRange = 'month'; histOff = (n.getFullYear() - y) * 12 + n.getMonth() - (m - 1); render(); window.scrollTo(0, 0); },
@@ -2012,6 +2014,9 @@ let lockSig = '';
 const RELOCK_KEY = 'biss-beta.relock';
 // Auf diesem Handy wieder gesperrt (über „Auf diesem Handy sperren“): 7× tippen hebt das wieder auf
 const relocked = () => lsGet(RELOCK_KEY) === '1';
+let verTaps = 0, verT;
+// Admin auf diesem Handy: hat sich schon einmal angemeldet oder einen Fingerabdruck eingerichtet
+const isAdmin = () => lsGet(OWNER_KEY) !== null || !!bioStored();
 // Die Admin-Freigabe gilt nur für die Sperre, für die sie erteilt wurde. Jede neue Sperre greift auch beim Admin wieder.
 const lockId = st => st ? String(st.id || JSON.stringify(st)) : '';
 const lockBypassed = (st = lockState()) => !relocked() && !!st && lsGet(OWNER_KEY) === lockId(st);
@@ -2022,6 +2027,7 @@ function hideLock(el) { clearInterval(lockTick); if (el) el.remove(); lockSig = 
 // Edle Wartungs-Seite: filmischer Hintergrund und Statuszeile
 function showLock(st) {
   let el = $('#lock');
+  if (relocked()) st = { ...(st || {}), gesperrt: true }; // auf diesem Handy abgemeldet: Login zeigen, auch wenn die App für alle frei ist
   if (!st || !st.gesperrt || lockBypassed(st)) { hideLock(el); return; }
   const sig = JSON.stringify(st);
   if (el && sig === lockSig) return; // nichts geändert: Animation nicht neu starten
