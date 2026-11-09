@@ -33,7 +33,7 @@ const WISH_URL = 'https://formspree.io/f/xeepbyjn';
 const STATS_URL = 'https://wfrtltqzhmeaildtlxga.supabase.co';
 const STATS_KEY = 'sb_publishable_Ic-sGCsYX6A3977v6kDEQA_i0W63MOG';
 // Versionsnummer für die Anzeige in der App. Bei jedem Update zusammen mit VERSION in sw.js hochzählen.
-const APP_VERSION = '1.24.2';
+const APP_VERSION = '1.24.3';
 // Eigene Speichernamen, damit diese Entwicklungs-Version die Daten der Live-App (gleiche Domain) nicht berührt
 const KEY = 'biss-beta.v1';
 const DEFAULTS = () => ({
@@ -1998,14 +1998,16 @@ let lockSig = '';
 const RELOCK_KEY = 'biss-beta.relock';
 // Auf diesem Handy wieder gesperrt (über „Auf diesem Handy sperren“): 7× tippen hebt das wieder auf
 const relocked = () => lsGet(RELOCK_KEY) === '1';
-const lockBypassed = () => !relocked() && lsGet(OWNER_KEY) === '1';
+// Die Admin-Freigabe gilt nur für die Sperre, für die sie erteilt wurde. Jede neue Sperre greift auch beim Admin wieder.
+const lockId = st => st ? String(st.id || JSON.stringify(st)) : '';
+const lockBypassed = (st = lockState()) => !relocked() && !!st && lsGet(OWNER_KEY) === lockId(st);
 const lockState = () => { try { return JSON.parse(lsGet(LOCK_KEY) || 'null'); } catch (e) { return null; } };
 let lockTick = 0;
 function hideLock(el) { clearInterval(lockTick); if (el) el.remove(); lockSig = ''; }
 // Edle Wartungs-Seite: filmischer Hintergrund und Statuszeile
 function showLock(st) {
   let el = $('#lock');
-  if (!st || !st.gesperrt || lockBypassed()) { hideLock(el); return; }
+  if (!st || !st.gesperrt || lockBypassed(st)) { hideLock(el); return; }
   const sig = JSON.stringify(st);
   if (el && sig === lockSig) return; // nichts geändert: Animation nicht neu starten
   lockSig = sig;
@@ -2054,7 +2056,7 @@ function showLock(st) {
 }
 function unlockOwner(el, msg) {
   try { localStorage.removeItem(RELOCK_KEY); } catch (e) { /* egal */ }
-  lsSet(OWNER_KEY, '1'); hideLock(el); toast(msg); render();
+  lsSet(OWNER_KEY, lockId(lockState())); hideLock(el); toast(msg); render();
 }
 // Admin-Login: Passwort wird nur als SHA-256-Prüfsumme verglichen (kein echter Schutz, die App läuft komplett im Browser)
 const ADMIN_HASH = '73887ad2ebd766a3876b21123636213a62ffd820ab061a7b5a5c6180c693305b';
