@@ -33,7 +33,7 @@ const WISH_URL = 'https://formspree.io/f/xeepbyjn';
 const STATS_URL = 'https://wfrtltqzhmeaildtlxga.supabase.co';
 const STATS_KEY = 'sb_publishable_Ic-sGCsYX6A3977v6kDEQA_i0W63MOG';
 // Versionsnummer für die Anzeige in der App. Bei jedem Update zusammen mit VERSION in sw.js hochzählen.
-const APP_VERSION = '1.24.1';
+const APP_VERSION = '1.24.2';
 // Eigene Speichernamen, damit diese Entwicklungs-Version die Daten der Live-App (gleiche Domain) nicht berührt
 const KEY = 'biss-beta.v1';
 const DEFAULTS = () => ({
@@ -2010,6 +2010,21 @@ function showLock(st) {
   if (el && sig === lockSig) return; // nichts geändert: Animation nicht neu starten
   lockSig = sig;
   if (!el) { el = document.createElement('div'); el.id = 'lock'; el.setAttribute('role', 'alertdialog'); document.body.appendChild(el); }
+  el.className = st.stil === 'neon' ? 'neon' : '';
+  // Schlichte Variante: nur Logo und ein Satz, am Rand ein wandernder RGB-Neonverlauf ("stil": "neon" in status.json)
+  if (st.stil === 'neon') {
+    clearInterval(lockTick);
+    el.innerHTML = `<i class="nb" aria-hidden="true"></i><i class="ng" aria-hidden="true"><i></i></i>
+      <div class="mx"><button class="nx-logo mx-in" id="lockBadge" aria-label="Biss"><img src="icons/icon-192.png" alt=""></button>
+      <p class="nx-txt mx-in" style="animation-delay:.3s">${esc(st.text || 'Nach einem Update wieder verfügbar')}</p></div>`;
+    // Für den Besitzer: 7× aufs Logo tippen öffnet den Admin-Login
+    let taps = 0, tT;
+    $('#lockBadge', el).addEventListener('click', () => {
+      clearTimeout(tT); tT = setTimeout(() => { taps = 0; }, 2000);
+      if (++taps >= 7) { taps = 0; showAdminLogin(el, st); }
+    });
+    return;
+  }
   const STEPS = st.schritte && st.schritte.length ? st.schritte : ['Neue Funktionen werden eingespielt', 'Lebensmittel-Datenbank wird optimiert', 'Feinschliff am Design', 'Gleich ist es so weit'];
   el.innerHTML = `<div class="mx-bg" aria-hidden="true"><i class="o1"></i><i class="o2"></i><i class="o3"></i><i class="sweep"></i><i class="grain"></i><i class="vig"></i></div>
     <div class="mx">
