@@ -33,7 +33,7 @@ const WISH_URL = 'https://formspree.io/f/xeepbyjn';
 const STATS_URL = 'https://wfrtltqzhmeaildtlxga.supabase.co';
 const STATS_KEY = 'sb_publishable_Ic-sGCsYX6A3977v6kDEQA_i0W63MOG';
 // Versionsnummer für die Anzeige in der App. Bei jedem Update zusammen mit VERSION in sw.js hochzählen.
-const APP_VERSION = '1.29.0';
+const APP_VERSION = '1.30.1';
 // Eigene Speichernamen, damit diese Entwicklungs-Version die Daten der Live-App (gleiche Domain) nicht berührt
 const KEY = 'biss-beta.v1';
 const DEFAULTS = () => ({
@@ -405,9 +405,10 @@ function viewGoals() {
   <section class="list icons"><a class="it" href="${esc(DONATE_URL)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${tile('paypal', ['#009cde', '#003087'])}<div class="n"><b>Entwickler unterstützen ☕</b><span>Freiwillige Spende per PayPal</span></div><span class="chev">${icon('right')}</span></a></section>` : ''}
   <p class="foot">Alle Daten bleiben auf diesem Gerät. Es gibt kein Konto.${adsOn() ? ' Die Werbung in dieser Beta ist nur eine Demo mit ausgedachten Anzeigen, es werden keine Daten an Werbefirmen gesendet.' : ''} Eingebaute Lebensmittel sind Richtwerte. Die Online-Suche und der Barcode-Scan nutzen Open Food Facts (offene Datenbank, ODbL).${STATS_URL ? ' Biss zählt anonym, wie oft und wie lange die App geöffnet wird. Dabei werden kein Name, keine dauerhafte Kennung und keine Einträge gesendet.' : ''}</p>
   <section class="list"><button class="it danger" data-act="wipe">Alle Daten löschen</button></section>
-  ${(lockState() || {}).gesperrt && lockBypassed() ? `<div class="hdr"><span>Sperre</span></div>
-  <section class="list icons"><button class="it" data-act="lockPreview">${tile('warn', ['#ff6b8a', '#e3123f'])}<div class="n"><b>Auf diesem Handy sperren</b><span>Wieder rein: „Ich bin Admin“ und Passwort</span></div><span class="chev">${icon('right')}</span></button></section>` : ''}
-  <p class="ver">Biss · Version ${APP_VERSION}</p>`;
+  ${isAdmin() ? `<div class="hdr"><span>Admin</span></div>
+  <section class="list icons"><button class="it" data-act="lockPreview">${tile('warn', ['#ff6b8a', '#e3123f'])}<div class="n"><b>Abmelden</b><span>Wieder rein: „Ich bin Admin“ und ${bioReady() ? 'Fingerabdruck oder Passwort' : 'Passwort'}</span></div><span class="chev">${icon('right')}</span></button>${bioAvail ? `
+  <button class="it" data-act="bioToggle">${tile('check', ['#34c759', '#248a3d'])}<div class="n"><b>Anmeldung per Fingerabdruck</b><span>${bioStored() ? 'Eingerichtet · Tippen zum Ausschalten' : 'Aus · Tippen zum Einrichten'}</span></div><span class="chev">${icon('right')}</span></button>` : ''}</section>` : ''}
+  <p class="ver" data-act="verTap">Biss · Version ${APP_VERSION}</p>`;
 }
 
 /* ---------- Ebenen (Sheets und Seiten) ---------- */
@@ -1870,7 +1871,14 @@ const ACT = {
   proFromAd: () => { const a = $('.adfull'); if (a && a.closeAd) a.closeAd(); openPro(); },
   adCta: () => toast('Demo-Anzeige: Hier würde die Seite des Werbepartners öffnen'),
   shareLink: () => shareLink(),
-  lockPreview: () => { lsSet(RELOCK_KEY, '1'); showLock(lockState() || { gesperrt: true }); },
+  bioToggle: async () => {
+    if (bioStored()) { try { localStorage.removeItem(BIO_KEY); } catch (e) { /* egal */ } toast('Fingerabdruck-Anmeldung ausgeschaltet'); render(); return; }
+    try { await bioRegister(); toast('Fingerabdruck eingerichtet 👍'); render(); }
+    catch (e) { toast(e && e.name === 'NotAllowedError' ? 'Abgebrochen' : 'Einrichten hat nicht geklappt'); }
+  },
+  lockPreview: () => { lsSet(RELOCK_KEY, '1'); closeAll(); showLock(lockState()); },
+  // Versteckter Admin-Zugang: 7× auf die Versionszeile tippen öffnet den Login
+  verTap: () => { clearTimeout(verT); verT = setTimeout(() => { verTaps = 0; }, 2000); if (++verTaps >= 7) { verTaps = 0; lsSet(RELOCK_KEY, '1'); showLock(lockState()); } },
   range: b => { histRange = b.dataset.n; histOff = 0; render(); },
   histStep: b => { histOff = Math.max(0, histOff + +b.dataset.d); render(); },
   openmonth: b => { const [y, m] = b.dataset.k.split('-').map(Number), n = kdate(todayKey()); histRange = 'month'; histOff = (n.getFullYear() - y) * 12 + n.getMonth() - (m - 1); render(); window.scrollTo(0, 0); },
@@ -2006,6 +2014,9 @@ let lockSig = '';
 const RELOCK_KEY = 'biss-beta.relock';
 // Auf diesem Handy wieder gesperrt (über „Auf diesem Handy sperren“): 7× tippen hebt das wieder auf
 const relocked = () => lsGet(RELOCK_KEY) === '1';
+let verTaps = 0, verT;
+// Admin auf diesem Handy: hat sich schon einmal angemeldet oder einen Fingerabdruck eingerichtet
+const isAdmin = () => lsGet(OWNER_KEY) !== null || !!bioStored();
 // Die Admin-Freigabe gilt nur für die Sperre, für die sie erteilt wurde. Jede neue Sperre greift auch beim Admin wieder.
 const lockId = st => st ? String(st.id || JSON.stringify(st)) : '';
 const lockBypassed = (st = lockState()) => !relocked() && !!st && lsGet(OWNER_KEY) === lockId(st);
@@ -2016,6 +2027,7 @@ function hideLock(el) { clearInterval(lockTick); if (el) el.remove(); lockSig = 
 // Edle Wartungs-Seite: filmischer Hintergrund und Statuszeile
 function showLock(st) {
   let el = $('#lock');
+  if (relocked()) st = { ...(st || {}), gesperrt: true }; // auf diesem Handy abgemeldet: Login zeigen, auch wenn die App für alle frei ist
   if (!st || !st.gesperrt || lockBypassed(st)) { hideLock(el); return; }
   const sig = JSON.stringify(st);
   if (el && sig === lockSig) return; // nichts geändert: Animation nicht neu starten
@@ -2033,6 +2045,7 @@ function showLock(st) {
           <label class="nx-f"><span>E-Mail</span><input type="email" id="nxMail" autocomplete="username" inputmode="email" autocapitalize="off" spellcheck="false" enterkeyhint="next" placeholder="name@beispiel.de"></label>
           <label class="nx-f"><span>Passwort</span><input type="password" id="nxPw" autocomplete="current-password" enterkeyhint="go" placeholder="••••••••"></label>
           <button class="nx-btn" type="submit">Anmelden</button>
+          ${bioButton('nx-bio')}
           <p class="nx-err" id="nxErr" role="alert"></p>
         </form>
         <p class="nx-foot mx-in" style="animation-delay:.45s">© ${new Date().getFullYear()} Biss</p>
@@ -2041,12 +2054,13 @@ function showLock(st) {
     const form = $('#nxForm', el), mail = $('#nxMail', el), pw = $('#nxPw', el), err = $('#nxErr', el);
     const fail = (msg, field) => { err.textContent = msg; form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake'); field.focus(); field.select(); };
     mail.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); pw.focus(); } });
+    wireBio(el, err);
     form.addEventListener('submit', async ev => {
       ev.preventDefault();
       if (Date.now() < admWait) { err.textContent = `Zu viele Versuche. Bitte ${Math.ceil((admWait - Date.now()) / 1000)} Sekunden warten.`; return; }
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail.value.trim())) return fail('Bitte eine gültige E-Mail-Adresse eingeben.', mail);
       if (!pw.value) return fail('Bitte das Passwort eingeben.', pw);
-      if (await sha256(mail.value.trim().toLowerCase()) === ADMIN_MAIL_HASH && await sha256(pw.value.trim()) === ADMIN_HASH) { admFails = 0; pw.blur(); unlockOwner(el, 'Willkommen zurück'); return; }
+      if (await sha256(mail.value.trim().toLowerCase()) === ADMIN_MAIL_HASH && await sha256(pw.value.trim()) === ADMIN_HASH) { admFails = 0; pw.blur(); afterPwLogin(el, 'Willkommen zurück'); return; }
       if (++admFails >= 5) { admWait = Date.now() + 30000; admFails = 0; }
       fail('E-Mail oder Passwort ist falsch.', pw);
     });
@@ -2088,6 +2102,92 @@ const ADMIN_HASH = '73887ad2ebd766a3876b21123636213a62ffd820ab061a7b5a5c6180c693
 const ADMIN_MAIL_HASH = 'ca17cb1657db2f847ec996f23754a38a9788afeea8b229799598b0103a322773'; // nur Hashes, keine Klartext-Zugangsdaten im Code
 async function sha256(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 let admFails = 0, admWait = 0;
+
+/* ---------- Anmeldung per Fingerabdruck / Face ID (Passkey über WebAuthn) ---------- */
+// Nach dem ersten Login mit Passwort kann der Admin einen Passkey auf diesem Gerät anlegen.
+// Gespeichert wird nur die Kennung und der öffentliche Schlüssel, der Fingerabdruck selbst verlässt nie das Handy.
+// Bei der Anmeldung signiert das Handy eine Zufallszahl, die App prüft die Unterschrift mit dem gespeicherten Schlüssel.
+const BIO_KEY = 'biss-beta.passkey', BIO_SKIP_KEY = 'biss-beta.passkey-spaeter';
+let bioAvail = false;
+try {
+  if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable)
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().then(v => { bioAvail = !!v; if (v) { const l = $('#lock'); if (l) { lockSig = null; showLock(lockState()); } } }).catch(() => {});
+} catch (e) { /* kein WebAuthn */ }
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), c => c.charCodeAt(0));
+const bioStored = () => { try { return JSON.parse(lsGet(BIO_KEY) || 'null'); } catch (e) { return null; } };
+const bioReady = () => bioAvail && !!bioStored();
+const BIO_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M6.2 5.4A8.5 8.5 0 0 1 20 9.8"/><path d="M4 9.6a8.4 8.4 0 0 0-.4 2.6"/><path d="M7.2 19.6c.9-1.9 1.3-4 1.3-6.2a3.5 3.5 0 0 1 7 0c0 1.1-.1 2.2-.3 3.2"/><path d="M12 13.4c0 3.1-.8 6-2.3 8.4"/><path d="M5.6 16.9c.4-1.1.6-2.3.6-3.5a5.8 5.8 0 0 1 11.6 0c0 2.6-.4 5-1.1 7.2"/><path d="M14.5 19.8c.2-.6.4-1.2.5-1.8"/></g></svg>';
+function bioButton(cls) { return bioReady() ? `<button type="button" class="${cls}" id="bioBtn">${BIO_SVG}Mit Fingerabdruck / Face ID</button>` : ''; }
+// Passkey anlegen. Muss direkt im Tipp-Handler starten (iOS verlangt eine Nutzeraktion).
+async function bioRegister() {
+  const cred = await navigator.credentials.create({ publicKey: {
+    challenge: crypto.getRandomValues(new Uint8Array(32)),
+    rp: { name: 'Biss' },
+    user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'Biss Admin', displayName: 'Biss Admin' },
+    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },
+    timeout: 60000, attestation: 'none'
+  } });
+  const r = cred.response;
+  const pub = r.getPublicKey ? r.getPublicKey() : null;
+  lsSet(BIO_KEY, JSON.stringify({ id: b64u(cred.rawId), pub: pub ? b64u(pub) : null, alg: r.getPublicKeyAlgorithm ? r.getPublicKeyAlgorithm() : -7 }));
+  try { localStorage.removeItem(BIO_SKIP_KEY); } catch (e) { /* egal */ }
+}
+// ECDSA-Unterschrift kommt im DER-Format, WebCrypto braucht r und s hintereinander (je 32 Byte)
+function derToRaw(der) {
+  let i = 2; const part = () => { i++; const len = der[i++]; let v = der.slice(i, i + len); i += len; while (v.length > 32 && v[0] === 0) v = v.slice(1); const o = new Uint8Array(32); o.set(v, 32 - v.length); return o; };
+  const r = part(), s = part(), out = new Uint8Array(64); out.set(r); out.set(s, 32); return out;
+}
+// Mit Fingerabdruck / Face ID anmelden. Liefert true, wenn alles passt.
+async function bioLogin() {
+  const st = bioStored(); if (!st) return false;
+  const challenge = crypto.getRandomValues(new Uint8Array(32));
+  const cred = await navigator.credentials.get({ publicKey: {
+    challenge, allowCredentials: [{ type: 'public-key', id: unb64u(st.id), transports: ['internal', 'hybrid'] }],
+    userVerification: 'required', timeout: 60000
+  } });
+  const r = cred.response, auth = new Uint8Array(r.authenticatorData), cdj = new Uint8Array(r.clientDataJSON);
+  const cd = JSON.parse(new TextDecoder().decode(cdj));
+  if (cd.type !== 'webauthn.get' || cd.challenge !== b64u(challenge) || cd.origin !== location.origin) return false;
+  if (!(auth[32] & 0x04)) return false; // Fingerabdruck / Face ID wurde nicht geprüft
+  if (!st.pub) return b64u(cred.rawId) === st.id;
+  const ec = st.alg === -7;
+  const key = await crypto.subtle.importKey('spki', unb64u(st.pub), ec ? { name: 'ECDSA', namedCurve: 'P-256' } : { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+  const data = new Uint8Array(auth.length + 32); data.set(auth); data.set(new Uint8Array(await crypto.subtle.digest('SHA-256', cdj)), auth.length);
+  const sig = new Uint8Array(r.signature);
+  return crypto.subtle.verify(ec ? { name: 'ECDSA', hash: 'SHA-256' } : { name: 'RSASSA-PKCS1-v1_5' }, key, ec ? derToRaw(sig) : sig, data);
+}
+// Knopf im Login verdrahten
+function wireBio(el, errEl) {
+  const b = $('#bioBtn', el); if (!b) return;
+  b.addEventListener('click', async () => {
+    errEl.textContent = '';
+    try {
+      if (await bioLogin()) { admFails = 0; unlockOwner(el, 'Willkommen zurück'); return; }
+      errEl.textContent = 'Anmeldung nicht bestätigt. Bitte mit Passwort anmelden.';
+    } catch (e) {
+      errEl.textContent = e && e.name === 'NotAllowedError' ? 'Abgebrochen. Nochmal tippen oder Passwort nutzen.' : 'Fingerabdruck geht gerade nicht. Bitte mit Passwort anmelden.';
+    }
+  });
+}
+// Nach dem Passwort-Login einmal anbieten, beim nächsten Mal den Fingerabdruck zu nutzen
+function afterPwLogin(el, msg) {
+  if (!bioAvail || bioStored() || lsGet(BIO_SKIP_KEY) === '1') { unlockOwner(el, msg); return; }
+  const box = $('.mx', el);
+  box.innerHTML = `
+    <div class="mx-adico mx-in" style="animation-delay:.05s">${BIO_SVG}</div>
+    <h2 class="mx-in" style="animation-delay:.12s">Nächstes Mal schneller rein?</h2>
+    <p class="mx-sub mx-in" style="animation-delay:.2s">Melde dich auf diesem Handy mit deinem Fingerabdruck oder Face ID an, statt das Passwort einzutippen. Dein Fingerabdruck bleibt auf dem Handy.</p>
+    <button type="button" class="bio-yes mx-in" id="bioYes" style="animation-delay:.3s">Fingerabdruck einrichten</button>
+    <button type="button" class="bio-no mx-in" id="bioNo" style="animation-delay:.36s">Später</button>
+    <p class="mx-err" id="bioErr" role="alert"></p>`;
+  $('#bioNo', box).addEventListener('click', () => { lsSet(BIO_SKIP_KEY, '1'); unlockOwner(el, msg); });
+  $('#bioYes', box).addEventListener('click', async () => {
+    try { await bioRegister(); unlockOwner(el, 'Fingerabdruck eingerichtet 👍'); }
+    catch (e) { $('#bioErr', box).textContent = e && e.name === 'NotAllowedError' ? 'Abgebrochen. Nochmal tippen oder „Später“.' : 'Einrichten hat nicht geklappt. Du kannst es später unter „Ziele“ nochmal versuchen.'; }
+  });
+}
 function showAdminLogin(el, st) {
   const box = $('.mx', el);
   box.innerHTML = `
@@ -2100,14 +2200,16 @@ function showAdminLogin(el, st) {
       <input type="password" id="admPw" placeholder="Passwort" autocomplete="current-password" enterkeyhint="go" aria-label="Passwort">
       <button type="submit">Anmelden</button>
     </form>
+    ${bioButton('mx-bio mx-in" style="animation-delay:.5s')}
     <p class="mx-err" id="admErr" role="alert"></p>`;
   const pw = $('#admPw', box), err = $('#admErr', box), form = $('#admForm', box);
-  setTimeout(() => pw.focus(), 350);
+  if (!bioReady()) setTimeout(() => pw.focus(), 350);
+  wireBio(el, err);
   $('#admBack', box).addEventListener('click', () => { lockSig = null; showLock(st); });
   form.addEventListener('submit', async ev => {
     ev.preventDefault();
     if (Date.now() < admWait) { err.textContent = `Zu viele Versuche. Warte ${Math.ceil((admWait - Date.now()) / 1000)} Sekunden.`; return; }
-    if (await sha256(pw.value.trim()) === ADMIN_HASH) { admFails = 0; pw.blur(); unlockOwner(el, 'Willkommen zurück, Admin'); return; }
+    if (await sha256(pw.value.trim()) === ADMIN_HASH) { admFails = 0; pw.blur(); afterPwLogin(el, 'Willkommen zurück, Admin'); return; }
     if (++admFails >= 5) { admWait = Date.now() + 30000; admFails = 0; }
     err.textContent = 'Falsches Passwort';
     form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake');
