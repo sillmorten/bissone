@@ -26,7 +26,7 @@ Alle Daten bleiben lokal auf dem Gerät (localStorage). Lebensmittel kommen von
 
 ## Demo-Werbung und Biss Pro (Test)
 Nur in der Beta und nur zum Ausprobieren: ausgedachte Anzeigen (Banner auf „Heute“ und im Verlauf, Vollbild alle 20 Minuten Nutzung mit 5 Sekunden Wartezeit). Es wird kein Werbenetzwerk geladen und nichts an Dritte gesendet.
-Biss Pro (unter „Ziele“) blendet die Werbung aus und schaltet eine eigene App-Farbe frei. Freischalten per Demo-Kauf (es wird nichts bezahlt) oder mit dem Test-Code `BISSPRO`. Pro wird nur auf dem Gerät gespeichert (`biss-beta.pro`), nicht im Backup.
+Biss Pro (unter „Ziele“) blendet die Werbung aus und schaltet Essensideen und Rezepte, Makro-Tipps, Streaks und Abzeichen, Fortschrittsfotos und eine eigene App-Farbe frei. Ohne Pro trägt man alles selbst ein (Suche, Barcode, eigene Lebensmittel und Schnelleintrag bleiben frei). Gespeicherte Fotos und Abzeichen bleiben erhalten und erscheinen wieder, sobald Pro aktiv ist. Freischalten per Demo-Kauf (es wird nichts bezahlt) oder mit dem Test-Code `BISSPRO`. Pro wird nur auf dem Gerät gespeichert (`biss-beta.pro`), nicht im Backup.
 Mit `"werbung": false` in `status.json` ist die Demo-Werbung für alle aus.
 
 ## Installation auf dem iPhone
