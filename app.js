@@ -33,7 +33,7 @@ const WISH_URL = 'https://formspree.io/f/xeepbyjn';
 const STATS_URL = 'https://wfrtltqzhmeaildtlxga.supabase.co';
 const STATS_KEY = 'sb_publishable_Ic-sGCsYX6A3977v6kDEQA_i0W63MOG';
 // Versionsnummer für die Anzeige in der App. Bei jedem Update zusammen mit VERSION in sw.js hochzählen.
-const APP_VERSION = '1.27.0';
+const APP_VERSION = '1.27.1';
 // Eigene Speichernamen, damit diese Entwicklungs-Version die Daten der Live-App (gleiche Domain) nicht berührt
 const KEY = 'biss-beta.v1';
 const DEFAULTS = () => ({
@@ -616,7 +616,6 @@ function openAmount(food, { entry = null, day = null, meal = null, g: sugG = 0 }
       }
       save(); buzz(); closeTop();
       toast(entry ? 'Gespeichert' : `${n0(v.kcal)} kcal eingetragen`);
-      if (!entry) maybeInterstitial();
       render(); renderAddBody(); refreshMealSheet(); refreshIdeas(); refreshMacroTips();
     });
     if (entry) $('#amtDel', el).addEventListener('click', () => deleteEntry(entry, day));
@@ -2129,7 +2128,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 /* ---------- Demo-Werbung und Biss Pro (nur Test, keine echte Werbung, keine echte Zahlung) ---------- */
 // Pro liegt bewusst nicht in S, damit es nicht mit dem Backup auf andere Handys wandert.
-const PRO_KEY = 'biss-beta.pro', AD_COUNT_KEY = 'biss-beta.adcount';
+const PRO_KEY = 'biss-beta.pro', AD_TIME_KEY = 'biss-beta.adzeit';
 const PRO_PRICE = '2,99 €';
 const PRO_CODE_HASH = '6f9b6d17de12eeed10c272a99e7781252bbbfad994e5e23e07816d3b3583d430'; // Test-Code als SHA-256-Hash (Code steht nicht im Klartext im Code)
 const PRO_COLORS = [['#ff2d55', 'Pink'], ['#007aff', 'Blau'], ['#28b350', 'Grün'], ['#ff9500', 'Orange'], ['#af52de', 'Lila'], ['#00a99d', 'Türkis']];
@@ -2163,13 +2162,14 @@ function adBanner(slot = 0) {
     <div class="ad-row"><span class="ic ad-ic" style="background:linear-gradient(180deg,${a.g[0]},${a.g[1]})">${a.e}</span><div class="n"><b>${a.t}</b><span>${a.s}</span></div><button class="ad-cta" data-act="adCta">${a.c}</button></div>
   </section>`;
 }
-// Vollbild-Werbung nach jedem 4. Eintrag
-function maybeInterstitial() {
-  if (!adsOn()) return;
-  const n = (parseInt(lsGet(AD_COUNT_KEY), 10) || 0) + 1; lsSet(AD_COUNT_KEY, String(n));
-  if (n % 4) return;
-  setTimeout(showInterstitial, 650);
-}
+// Vollbild-Werbung nach jeweils 20 Minuten Nutzung (nur gezählt, solange die App offen und sichtbar ist)
+const AD_EVERY = 20 * 60 * 1000, AD_TICK = 15 * 1000;
+setInterval(() => {
+  if (document.visibilityState !== 'visible' || !adsOn() || $('#lock') || $('.adfull')) return;
+  const used = (parseInt(lsGet(AD_TIME_KEY), 10) || 0) + AD_TICK;
+  if (used < AD_EVERY) { lsSet(AD_TIME_KEY, String(used)); return; }
+  lsSet(AD_TIME_KEY, '0'); showInterstitial();
+}, AD_TICK);
 function showInterstitial() {
   if (!adsOn() || $('.adfull')) return;
   const a = DEMO_ADS[(adSeed++) % DEMO_ADS.length];
@@ -2260,7 +2260,7 @@ function openNews() {
       <p>Wir testen Werbung und Biss Pro. Alles nur Demo: keine echten Anzeigen, keine echte Zahlung.</p>
     </div>
     <section class="list icons bklist">
-      ${row('info', ['#a1a1a6', '#6e6e73'], 'Demo-Werbung', 'Ausgedachte Anzeigen auf „Heute“, im Verlauf und ab und zu im Vollbild.')}
+      ${row('info', ['#a1a1a6', '#6e6e73'], 'Demo-Werbung', 'Ausgedachte Anzeigen auf „Heute“, im Verlauf und alle 20 Minuten im Vollbild.')}
       ${row('sparkle', ['#ffd60a', '#f5a300'], 'Biss Pro', 'Ohne Werbung und mit eigener App-Farbe. Unter „Ziele“ testweise freischalten.')}
     </section>
     <button class="btn" id="nwGo">Biss Pro ansehen</button>
